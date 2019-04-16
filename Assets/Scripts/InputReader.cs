@@ -8,12 +8,25 @@ public class InputReader : MonoBehaviour {
 
     public Transform cameraRig;
 
-    bool recording = false;
-    float startingTime;
-    int frames;
     Transform headset;
     Transform leftController;
     Transform rightController;
+
+    // Calibration Related
+    string calibration;
+    Vector3 calibratedHeadsetPosition;
+    Vector3 calibratedHeadsetEuler;
+    Vector3 calibratedLeftPosition;
+    Vector3 calibratedLeftEuler;
+    Vector3 calibratedRightPosition;
+    Vector3 calibratedRightEuler;
+
+    // File writing
+    string tempPath;
+    string exportDir;
+    bool recording = false;
+    float startingTime;
+    int frames;
     StreamWriter sw;
 
 	// Use this for initialization
@@ -21,28 +34,38 @@ public class InputReader : MonoBehaviour {
         headset = cameraRig.Find("TrackingSpace").Find("CenterEyeAnchor");
         leftController = cameraRig.Find("TrackingSpace").Find("LeftHandAnchor");
         rightController = cameraRig.Find("TrackingSpace").Find("RightHandAnchor");
-
-        string dirPath = Application.persistentDataPath + "/exports";
-        Directory.CreateDirectory(dirPath);
+        tempPath = Application.persistentDataPath + "/temp";
+        exportDir = Application.persistentDataPath + "/exports";
+        Directory.CreateDirectory(exportDir);
     }
 
-    private void FixedUpdate () {
+    private void Update() {
+        // Calibration handling.
+        if (Input.GetKeyDown(KeyCode.C)) {
+            print("Updating calibration values...");
+            calibration = GetFrameString();
+        }
+
+        // Recording handling.
         if (Input.GetKeyDown(KeyCode.Space)) {
+            print("Detected space key.");
             recording = !recording;
             if (recording) {
                 startingTime = Time.time;
                 frames = 0;
                 print("Creating temporary file.");
-                sw = new StreamWriter(Application.persistentDataPath + "/temp");
+                sw = new StreamWriter(tempPath);
                 sw.WriteLine("Frame Time: " + Time.fixedDeltaTime);
+                sw.WriteLine("Calibration: " + calibration);
                 print("Starting recording.");
-            } else {
+            }
+            else {
                 sw.Close();
                 print("Closing temporary file.");
                 string fileName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
                 print("Creating export file: " + fileName);
-                StreamReader sr = new StreamReader(Application.persistentDataPath + "/temp");
-                sw = new StreamWriter(Application.persistentDataPath + "/exports/" + fileName + ".txt");
+                StreamReader sr = new StreamReader(tempPath);
+                sw = new StreamWriter(exportDir + "/" + fileName + ".txt");
                 sw.WriteLine("Frames: " + frames);
 
                 string line;
@@ -52,12 +75,15 @@ public class InputReader : MonoBehaviour {
 
                 sr.Close();
                 sw.Close();
+                sw = null;
+                File.Delete(tempPath);
                 print("Finished recording.");
             }
         }
+    }
 
-        if (recording) {
-            sw.WriteLine(headset.position.x + " "
+    private string GetFrameString() {
+        return headset.position.x + " "
                     + headset.position.y + " "
                     + headset.position.z + " "
                     + headset.eulerAngles.x + " "
@@ -74,8 +100,12 @@ public class InputReader : MonoBehaviour {
                     + rightController.position.z + " "
                     + rightController.eulerAngles.x + " "
                     + rightController.eulerAngles.y + " "
-                    + rightController.eulerAngles.z);
+                    + rightController.eulerAngles.z;
+    }
 
+    private void FixedUpdate () {
+        if (recording && sw != null) {
+            sw.WriteLine(GetFrameString());
             frames++;
 
             //print("Headset: " + headset.position);
