@@ -28,6 +28,7 @@ public class InputReader : MonoBehaviour {
     float startingTime;
     int frames;
     StreamWriter sw;
+    string fileName;
 
 	// Use this for initialization
 	void Start () {
@@ -53,6 +54,7 @@ public class InputReader : MonoBehaviour {
             if (recording) {
                 startingTime = Time.time;
                 frames = 0;
+                fileName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
                 print("Creating temporary file.");
                 sw = new StreamWriter(tempPath);
                 sw.WriteLine("Frame Time: " + Time.fixedDeltaTime);
@@ -62,7 +64,6 @@ public class InputReader : MonoBehaviour {
             else {
                 sw.Close();
                 print("Closing temporary file.");
-                string fileName = DateTime.Now.ToString("yyyy-dd-M--HH-mm-ss");
                 print("Creating export file: " + fileName);
                 StreamReader sr = new StreamReader(tempPath);
                 sw = new StreamWriter(exportDir + "/" + fileName + ".txt");
